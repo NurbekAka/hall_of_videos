@@ -26,7 +26,7 @@ SECRET_KEY = 'zim!4lqalu)(5$j+6i(tarb0@77%$ht0(h_oi6h@is=&a2&zyt'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['fathomless-castle-88468.herokuapp.com/', 'nuko.kg', 'www.nuko.kg']
 
 
 LOGIN_URL = 'login'
