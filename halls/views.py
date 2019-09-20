@@ -6,6 +6,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login
 from .models import Hall, Video
 from .forms import VideoForm, SearchForm
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 import urllib.parse
 import requests
 from django.forms.utils import ErrorList
@@ -14,14 +16,18 @@ from django.forms.utils import ErrorList
 YOUTUBE_API_KEY = 'AIzaSyCqzoJGpcrzD6oLPOhn8FKJrjEnRntjt7A'
 
 def home(request):
-    return render(request, 'halls/home.html')
+    recent_halls = Hall.objects.all().order_by('-id')[:3]
+    popular_halls = [Hall.objects.get(pk=1), Hall.objects.get(pk=2), Hall.objects.get(pk=3)]
+    return render(request, 'halls/home.html', {'recent_hall':recent_halls, 'popular_halls': popular_halls})
 
 
+@login_required
 def dashboard(request):
     halls = Hall.objects.filter(user=request.user)
     return render(request, 'halls/dashboard.html', {'halls':halls})
 
 
+@login_required
 def add_video(request, pk):
     form = VideoForm()
     search_form = SearchForm()
@@ -51,6 +57,7 @@ def add_video(request, pk):
     return render(request, 'halls/add_video.html', {'form':form, 'search_form':search_form, 'hall':hall})
 
 
+@login_required
 def video_search(request):
     search_form = SearchForm(request.GET)
     if search_form.is_valid():
@@ -61,10 +68,16 @@ def video_search(request):
     return JsonResponse({'error': 'Not possible to validate form'})
 
 
-class DeleteVideo(DeleteView):
+class DeleteVideo(LoginRequiredMixin, DeleteView):
     model = Video
     template_name = 'halls/delete_video.html'
     success_url = reverse_lazy('dashboard')
+
+    def get_object(self):
+        video = super(DeleteVideo, self).get_object()
+        if not video.hall.user == self.request.user:
+            raise Http404
+        return video
 
 
 class SignUp(CreateView):
@@ -80,7 +93,7 @@ class SignUp(CreateView):
         return view
 
 
-class CreateHall(CreateView):
+class CreateHall(LoginRequiredMixin, CreateView):
     model = Hall
     fields = ['title']
     success_url = reverse_lazy('dashboard')
@@ -92,20 +105,32 @@ class CreateHall(CreateView):
         return redirect('dashboard')
 
 
-class DetailHall(DetailView):
+class DetailHall(LoginRequiredMixin, DetailView):
     model = Hall
     template_name = 'halls/detail_hall.html'
     success_url = reverse_lazy('dashboard')
 
 
-class UpdateHall(UpdateView):
+class UpdateHall(LoginRequiredMixin, UpdateView):
     model = Hall
     fields = ['title']
     success_url = reverse_lazy('dashboard')
     template_name = 'halls/update_hall.html'
 
+    def get_object(self):
+        hall = super(UpdateHall, self).get_object()
+        if not hall.user == self.request.user:
+            raise Http404
+        return hall
 
-class DeleteHall(DeleteView):
+
+class DeleteHall(LoginRequiredMixin, DeleteView):
     model = Hall
     template_name = 'halls/delete_hall.html'
     success_url = reverse_lazy('dashboard')
+
+    def get_object(self):
+        hall = super(DeleteHall, self).get_object()
+        if not hall.user == self.request.user:
+            raise Http404
+        return hall
